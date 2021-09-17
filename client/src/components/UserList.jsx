@@ -15,22 +15,33 @@ const ListContainer = ({ children }) => {
   )
 }
 
-const UserItem = ({ user }) => {
+const UserItem = ({ user, setSelectedUser }) => {
+  const [selected, setSelected] = useState(false)
+
+  const handleSelect = () => {
+    if (selected) setSelectedUser(prevUsers => !prevUsers.filter(prevUser => prevUser !== user.id))
+    else setSelectedUser(prevUsers => [ ...prevUsers, user.id ])
+
+    setSelected(prevSelected => !prevSelected)
+  }
+
   return (
-    <div className='user-item__wrapper'>
+    <div className='user-item__wrapper' onClick={handleSelect}>
       <div className='user-item__name-wrapper'>
         <Avatar image={user.image} name={user.fullName || user.id} size={32} />
-        <p></p>
+        <p className='user-item__name'>{user.fullName || user.id}</p>
       </div>
+      { selected ? <InviteIcon /> : <div className='user-item__invite-empty' /> }
     </div>
   )
 }
 
-const UserList = () => {
+const UserList = ({ setSelectedUser }) => {
   const { client } = useChatContext()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(false)
   const [listEmpty, setListEmpty] = useState(false)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     const getUsers = async () => {
@@ -48,7 +59,7 @@ const UserList = () => {
         if (response.users.length) setUsers(response.users)
         else setListEmpty(true)
       } catch (error) {
-        console.log(error)
+        setError(true)
       }
 
       setLoading(false)
@@ -57,13 +68,33 @@ const UserList = () => {
     if (client) getUsers()
   }, [])
 
+  if (error) {
+    return (
+      <ListContainer>
+        <div className='user-list__message'>
+          Error loading, please refresh and try again
+        </div>
+      </ListContainer>
+    )
+  }
+
+  if (listEmpty) {
+    return (
+      <ListContainer>
+        <div className='user-list__message'>
+          No users found.
+        </div>
+      </ListContainer>
+    )
+  }
+
   return (
     <ListContainer>
       {loading ? <div className='user-list__message'>
         Loading users...
       </div> : (
         users?.map((user, i) => (
-          <UserItem index={i} key={user.id} user={user} />
+          <UserItem index={i} key={user.id} user={user} setSelectedUser={setSelectedUser} />
         ))
       )}
     </ListContainer>
